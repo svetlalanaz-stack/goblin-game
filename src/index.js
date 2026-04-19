@@ -2,19 +2,46 @@ import './styles.css';
 import goblinImage from './goblin.png';
 
 class GoblinGame {
+    static FIELD_SIZE = 4;
+    static MAX_MISSES = 10;
+    static MOVE_INTERVAL_MS = 1000;
+    static POP_ANIMATION_MS = 200;
+    static HIT_ANIMATION_MS = 100;
+    
     constructor() {
-        this.fieldSize = 4;
+        this.fieldSize = GoblinGame.FIELD_SIZE;
+        this.maxMisses = GoblinGame.MAX_MISSES;
         this.cells = [];
         this.currentPosition = null;
         this.score = 0;
         this.misses = 0;
         this.gameInterval = null;
         this.goblinElement = null;
+        this.gameField = null;
+        this.scoreElement = null;
+        this.missesElement = null;
         
         this.init();
     }
     
     init() {
+        const gameField = document.getElementById('game-field');
+        const scoreElement = document.getElementById('score');
+        const missesElement = document.getElementById('misses');
+        
+        if (!gameField) {
+            console.error('Игровое поле не найдено!');
+            return;
+        }
+        if (!scoreElement || !missesElement) {
+            console.error('Элементы счёта не найдены!');
+            return;
+        }
+        
+        this.gameField = gameField;
+        this.scoreElement = scoreElement;
+        this.missesElement = missesElement;
+        
         this.createGameField();
         this.createGoblin();
         this.startGame();
@@ -22,56 +49,49 @@ class GoblinGame {
     }
     
     createGameField() {
-        const gameField = document.getElementById('game-field');
+        const totalCells = this.fieldSize * this.fieldSize;
         
-        for (let i = 0; i < this.fieldSize * this.fieldSize; i++) {
+        for (let i = 0; i < totalCells; i++) {
             const cell = document.createElement('div');
             cell.className = 'hole';
             cell.dataset.index = i;
             
-          
             cell.addEventListener('click', (event) => {
                 this.handleClick(i, event);
             });
             
-            gameField.appendChild(cell);
+            this.gameField.append(cell);
             this.cells.push(cell);
         }
     }
     
     createGoblin() {
-        
         this.goblinElement = document.createElement('img');
         this.goblinElement.src = goblinImage;
         this.goblinElement.className = 'goblin';
         this.goblinElement.alt = 'Goblin';
         
-        
         this.goblinElement.addEventListener('click', (event) => {
-            event.stopPropagation(); 
+            event.stopPropagation();
             this.hitGoblin();
         });
     }
     
     startGame() {
-        
         this.moveGoblin();
-        
-        
         this.gameInterval = setInterval(() => {
             this.moveGoblin();
-        }, 1000);
+        }, GoblinGame.MOVE_INTERVAL_MS);
     }
     
     moveGoblin() {
         let newPosition;
-        
+        const totalCells = this.fieldSize * this.fieldSize;
         
         do {
-            newPosition = Math.floor(Math.random() * (this.fieldSize * this.fieldSize));
+            newPosition = Math.floor(Math.random() * totalCells);
         } while (newPosition === this.currentPosition);
         
-       
         if (this.currentPosition !== null) {
             const oldCell = this.cells[this.currentPosition];
             if (oldCell.contains(this.goblinElement)) {
@@ -79,17 +99,14 @@ class GoblinGame {
             }
         }
         
-        
         const newCell = this.cells[newPosition];
-        newCell.appendChild(this.goblinElement);
-        
-        
+        newCell.append(this.goblinElement);
         this.currentPosition = newPosition;
     }
     
     handleClick(cellIndex, event) {
-        
-        if (cellIndex === this.currentPosition && this.goblinElement.parentElement === this.cells[cellIndex]) {
+        if (cellIndex === this.currentPosition && 
+            this.goblinElement.parentElement === this.cells[cellIndex]) {
             return;
         }
         
@@ -99,9 +116,9 @@ class GoblinGame {
         this.cells[cellIndex].style.transform = 'scale(0.95)';
         setTimeout(() => {
             this.cells[cellIndex].style.transform = '';
-        }, 200);
+        }, GoblinGame.POP_ANIMATION_MS);
         
-        if (this.misses >= 10) {
+        if (this.misses >= this.maxMisses) {
             this.gameOver();
         }
     }
@@ -110,18 +127,21 @@ class GoblinGame {
         this.score++;
         this.updateScoreDisplay();
         
-        // Визуальный эффект попадания
         this.goblinElement.style.transform = 'scale(1.2)';
         setTimeout(() => {
             this.goblinElement.style.transform = '';
-        }, 100);
+        }, GoblinGame.HIT_ANIMATION_MS);
         
         this.moveGoblin();
     }
     
     updateScoreDisplay() {
-        document.getElementById('score').textContent = this.score;
-        document.getElementById('misses').textContent = this.misses;
+        if (this.scoreElement) {
+            this.scoreElement.textContent = this.score;
+        }
+        if (this.missesElement) {
+            this.missesElement.textContent = this.misses;
+        }
     }
     
     gameOver() {
